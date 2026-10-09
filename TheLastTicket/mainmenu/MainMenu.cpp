@@ -1,11 +1,12 @@
 #include "MainMenu.h"
 #include <algorithm>
 #include <stdexcept>
+#include <iostream>
 
 namespace {
     constexpr float FadeButtonsSeconds = 0.60f;
     constexpr float FlickerSeconds = 0.85f;
-    constexpr float LitSeconds = 1.10f;
+    constexpr float LitSeconds = 1.60f;
     constexpr float FadeBlackSeconds = 0.80f;
 }
 
@@ -22,6 +23,20 @@ MainMenu::MainMenu(sf::Vector2u windowSize) : size(windowSize) {
     logoOneBulbTexture.setSmooth(true);
     logoOnTexture.setSmooth(true);
     setLogo(logoOffTexture);
+
+    // Optional menu transition sounds. A missing audio file won't crash the game.
+    if (!lightFlicker.openFromFile("assets/audio/soundfx/lightflicker.mp3"))
+        std::cerr << "Warning: could not load lightflicker.mp3\n";
+    else {
+        lightFlicker.setLoop(false);
+        lightFlicker.setVolume(65.f);
+    }
+    if (!lightBuzz.openFromFile("assets/audio/soundfx/lightbuzz.mp3"))
+        std::cerr << "Warning: could not load lightbuzz.mp3\n";
+    else {
+        lightBuzz.setLoop(true);
+        lightBuzz.setVolume(45.f);
+    }
 
     setupButtons();
     blackOverlay.setSize(sf::Vector2f(static_cast<float>(size.x), static_cast<float>(size.y)));
@@ -69,11 +84,23 @@ void MainMenu::setButtonsAlpha(sf::Uint8 alpha) {
 void MainMenu::enterPhase(Phase next) {
     phase = next;
     phaseClock.restart();
-    if (next == Phase::Flicker) setLogo(logoOffTexture);
-    if (next == Phase::Lit) {
-        setLogo(logoOnTexture);
+    if (next == Phase::Flicker) {
+        setLogo(logoOffTexture);
+        if (lightFlicker.getDuration() > sf::Time::Zero)
+            lightFlicker.play();
     }
-    if (next == Phase::FadeBlack) blackOverlay.setFillColor(sf::Color(0, 0, 0, 0));
+    if (next == Phase::Lit) {
+        lightFlicker.stop();
+        setLogo(logoOnTexture);
+        if (lightBuzz.getDuration() > sf::Time::Zero) {
+            lightBuzz.setVolume(45.f);
+            lightBuzz.play();
+        }
+    }
+    if (next == Phase::FadeBlack)
+        blackOverlay.setFillColor(sf::Color(0, 0, 0, 0));
+    if (next == Phase::Complete)
+        lightBuzz.stop();
 }
 
 void MainMenu::startTransition(Action action) {
@@ -121,6 +148,8 @@ void MainMenu::update(const sf::RenderWindow& window) {
         case Phase::FadeBlack: {
             const float p = std::min(t / FadeBlackSeconds, 1.f);
             blackOverlay.setFillColor(sf::Color(0, 0, 0, static_cast<sf::Uint8>(255.f * p)));
+            // Fade the electric hum in sync with the illuminated sign disappearing.
+            lightBuzz.setVolume(45.f * (1.f - p));
             if (p >= 1.f) enterPhase(Phase::Complete);
             break;
         }

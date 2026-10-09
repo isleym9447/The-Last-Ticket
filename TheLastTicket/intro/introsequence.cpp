@@ -155,3 +155,9 @@ void IntroSequence::draw(sf::RenderWindow& window) const {
 }
 
 bool IntroSequence::isFinished() const { return state == State::Finished; }
+
+float IntroSequence::getOrganVolumeFactor() const {
+    if (state == State::OmenFadeOut)
+        return 1.f - clamp01(timer / lastWordFadeDuration);
+    return state == State::Finished ? 0.f : 1.f;
+}

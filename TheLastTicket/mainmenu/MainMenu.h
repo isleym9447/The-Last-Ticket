@@ -1,9 +1,9 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <array>
 #include <string>
-
 
 class MainMenu {
 public:
@@ -30,6 +30,8 @@ private:
     Phase phase = Phase::Idle;
     Action pendingAction = Action::None;
     sf::Clock phaseClock;
+    sf::Music lightFlicker;
+    sf::Music lightBuzz;
     sf::Vector2u size;
 
     static void centerText(sf::Text& text, float x, float y);

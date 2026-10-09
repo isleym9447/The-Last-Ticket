@@ -24,5 +24,5 @@ private:
     static constexpr float audioDelay = 1.f;
     static constexpr float audioFadeDuration = 1.5f;
     static constexpr float ambienceVolume = 65.f;
-    static constexpr float musicVolume = 28.f;
+    static constexpr float musicVolume = 35.f;
 };

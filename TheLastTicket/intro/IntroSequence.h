@@ -25,6 +25,7 @@ public:
     void draw(sf::RenderWindow& window) const;
 
     bool isFinished() const;
+    float getOrganVolumeFactor() const;
 
 private:
     sf::Font font;

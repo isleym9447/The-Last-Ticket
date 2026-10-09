@@ -1,4 +1,6 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
+#include <stdexcept>
 #include <algorithm>
 #include <iostream>
 #include "mainmenu/MainMenu.h"
@@ -13,6 +15,15 @@ int main() {
     IntroSequence introSequence(window.getSize());
     CarScene carScene(window.getSize());
 
+    // One continuous music track for the menu, credits, warning and omen.
+    sf::Music menuOrgan;
+    constexpr float organVolume = 40.f;
+    if (!menuOrgan.openFromFile("assets/audio/music/menuorgan.mp3"))
+        throw std::runtime_error("Could not load assets/audio/music/menuorgan.mp3");
+    menuOrgan.setLoop(true);
+    menuOrgan.setVolume(organVolume);
+    menuOrgan.play();
+
     enum class GameScreen { MainMenu, Intro, Car };
     GameScreen currentScreen = GameScreen::MainMenu;
     sf::Clock clock;
@@ -26,8 +37,10 @@ int main() {
                 continue;
             }
             if (currentScreen == GameScreen::MainMenu) {
-                if (mainMenu.handleEvent(event, window) == MainMenu::Action::Exit)
+                if (mainMenu.handleEvent(event, window) == MainMenu::Action::Exit) {
+                    menuOrgan.stop();
                     window.close();
+                }
             } else if (currentScreen == GameScreen::Intro) {
                 introSequence.handleEvent(event);
             }
@@ -43,6 +56,7 @@ int main() {
                     currentScreen = GameScreen::Intro;
                     std::cout << "Starting warning sequence...\n";
                 } else if (completed == MainMenu::Action::Resume) {
+                    menuOrgan.stop();
                     std::cout << "Resume not implemented yet.\n";
                 } else if (completed == MainMenu::Action::Exit) {
                     window.close();
@@ -51,7 +65,9 @@ int main() {
             }
             case GameScreen::Intro:
                 introSequence.update(deltaTime);
+                menuOrgan.setVolume(organVolume * introSequence.getOrganVolumeFactor());
                 if (introSequence.isFinished()) {
+                    menuOrgan.stop();
                     carScene.start();
                     currentScreen = GameScreen::Car;
                     std::cout << "Morgan's car scene begins...\n";
