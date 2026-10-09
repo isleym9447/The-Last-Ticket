@@ -4,6 +4,7 @@
 #include <array>
 #include <string>
 
+
 class MainMenu {
 public:
     enum class Action { None, Start, Resume, Exit };

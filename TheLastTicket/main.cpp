@@ -1,7 +1,9 @@
 #include <SFML/Graphics.hpp>
+#include <algorithm>
 #include <iostream>
 #include "mainmenu/MainMenu.h"
 #include "intro/IntroSequence.h"
+#include "scenes/CarScene.h"
 
 int main() {
     sf::RenderWindow window(sf::VideoMode(1280, 720), "THE LAST TICKET", sf::Style::Close);
@@ -9,13 +11,14 @@ int main() {
 
     MainMenu mainMenu(window.getSize());
     IntroSequence introSequence(window.getSize());
+    CarScene carScene(window.getSize());
 
-    enum class GameScreen { MainMenu, Intro, Game };
+    enum class GameScreen { MainMenu, Intro, Car };
     GameScreen currentScreen = GameScreen::MainMenu;
     sf::Clock clock;
 
     while (window.isOpen()) {
-        float deltaTime = std::min(clock.restart().asSeconds(), 0.1f);
+        const float deltaTime = std::min(clock.restart().asSeconds(), 0.1f);
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
@@ -49,28 +52,22 @@ int main() {
             case GameScreen::Intro:
                 introSequence.update(deltaTime);
                 if (introSequence.isFinished()) {
-                    currentScreen = GameScreen::Game;
-                    std::cout << "Morgan's introduction begins...\n";
+                    carScene.start();
+                    currentScreen = GameScreen::Car;
+                    std::cout << "Morgan's car scene begins...\n";
                 }
                 break;
-            case GameScreen::Game:
-                // Future Morgan car scene.
+            case GameScreen::Car:
+                carScene.update(deltaTime);
                 break;
         }
         if (!window.isOpen()) break;
 
         window.clear(sf::Color(8, 5, 8));
         switch (currentScreen) {
-            case GameScreen::MainMenu:
-                window.clear(sf::Color(22, 13, 19));
-                mainMenu.draw(window);
-                break;
-            case GameScreen::Intro:
-                introSequence.draw(window);
-                break;
-            case GameScreen::Game:
-                // Black placeholder until Morgan's car scene exists.
-                break;
+            case GameScreen::MainMenu: mainMenu.draw(window); break;
+            case GameScreen::Intro: introSequence.draw(window); break;
+            case GameScreen::Car: carScene.draw(window); break;
         }
         window.display();
     }
