@@ -27,6 +27,7 @@ int main() {
     enum class GameScreen { MainMenu, Intro, Car };
     GameScreen currentScreen = GameScreen::MainMenu;
     sf::Clock clock;
+    bool exitAfterClick = false;
 
     while (window.isOpen()) {
         const float deltaTime = std::min(clock.restart().asSeconds(), 0.1f);
@@ -37,15 +38,20 @@ int main() {
                 continue;
             }
             if (currentScreen == GameScreen::MainMenu) {
-                if (mainMenu.handleEvent(event, window) == MainMenu::Action::Exit) {
-                    menuOrgan.stop();
-                    window.close();
+                if (!exitAfterClick &&
+                    mainMenu.handleEvent(event, window) == MainMenu::Action::Exit) {
+                    exitAfterClick = true;
                 }
             } else if (currentScreen == GameScreen::Intro) {
                 introSequence.handleEvent(event);
             }
         }
         if (!window.isOpen()) break;
+        if (exitAfterClick && !mainMenu.isExitClickPlaying()) {
+            menuOrgan.stop();
+            window.close();
+            break;
+        }
 
         switch (currentScreen) {
             case GameScreen::MainMenu: {

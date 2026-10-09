@@ -38,6 +38,18 @@ MainMenu::MainMenu(sf::Vector2u windowSize) : size(windowSize) {
         lightBuzz.setVolume(45.f);
     }
 
+    auto loadMenuSound = [](sf::Music& sound, const char* path, float volume) {
+        if (!sound.openFromFile(path)) {
+            std::cerr << "Warning: could not load " << path << '\n';
+            return;
+        }
+        sound.setVolume(volume);
+        sound.setLoop(false);
+    };
+    loadMenuSound(menuHover, "assets/audio/soundfx/menuhover.mp3", 55.f);
+    loadMenuSound(menuClick, "assets/audio/soundfx/menuclick.mp3", 65.f);
+    loadMenuSound(startResume, "assets/audio/soundfx/startresume.mp3", 70.f);
+
     setupButtons();
     blackOverlay.setSize(sf::Vector2f(static_cast<float>(size.x), static_cast<float>(size.y)));
     blackOverlay.setFillColor(sf::Color(0, 0, 0, 0));
@@ -106,21 +118,42 @@ void MainMenu::enterPhase(Phase next) {
 void MainMenu::startTransition(Action action) {
     if (phase != Phase::Idle) return;
     pendingAction = action;
+    startResume.stop();
+    startResume.setPlayingOffset(sf::Time::Zero);
+    if (startResume.getDuration() > sf::Time::Zero)
+        startResume.play();
+    startResumeClock.restart();
     enterPhase(Phase::FadeButtons);
 }
 
 void MainMenu::update(const sf::RenderWindow& window) {
+    // Only the opening three seconds of the eight-second START/RESUME cue.
+    if (startResume.getStatus() == sf::SoundSource::Playing &&
+        startResumeClock.getElapsedTime().asSeconds() >= 3.f)
+        startResume.stop();
+
     if (phase == Phase::Idle) {
-        if (showingCredits) return;
+        if (showingCredits) {
+            hoveredButton = -1;
+            return;
+        }
         const sf::Vector2f mouse = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+        int newHoveredButton = -1;
         for (std::size_t i = 0; i < buttons.size(); ++i) {
             if (i == 1 && !hasSaveFile) {
                 buttons[i].setFillColor(sf::Color(90, 80, 85));
             } else {
                 const bool hover = buttons[i].getGlobalBounds().contains(mouse);
+                if (hover) newHoveredButton = static_cast<int>(i);
                 buttons[i].setFillColor(hover ? sf::Color(255, 221, 160) : sf::Color(220, 198, 163));
             }
         }
+        if (newHoveredButton != hoveredButton && newHoveredButton >= 0 &&
+            menuHover.getDuration() > sf::Time::Zero) {
+            menuHover.stop();
+            menuHover.play();
+        }
+        hoveredButton = newHoveredButton;
         return;
     }
 
@@ -166,6 +199,7 @@ MainMenu::Action MainMenu::handleEvent(const sf::Event& event, const sf::RenderW
         if ((event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) ||
             (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left))
             showingCredits = false;
+        hoveredButton = -1;
         return Action::None;
     }
     if (event.type != sf::Event::MouseButtonPressed || event.mouseButton.button != sf::Mouse::Left)
@@ -179,8 +213,20 @@ MainMenu::Action MainMenu::handleEvent(const sf::Event& event, const sf::RenderW
             case 1:
                 if (hasSaveFile) startTransition(Action::Resume);
                 return Action::None;
-            case 2: showingCredits = true; return Action::None;
-            case 3: return Action::Exit;
+            case 2:
+                if (menuClick.getDuration() > sf::Time::Zero) {
+                    menuClick.stop();
+                    menuClick.play();
+                }
+                showingCredits = true;
+                hoveredButton = -1;
+                return Action::None;
+            case 3:
+                if (menuClick.getDuration() > sf::Time::Zero) {
+                    menuClick.stop();
+                    menuClick.play();
+                }
+                return Action::Exit;
         }
     }
     return Action::None;
@@ -208,4 +254,8 @@ MainMenu::Action MainMenu::takeCompletedAction() {
     const Action result = pendingAction;
     pendingAction = Action::None;
     return result;
+}
+
+bool MainMenu::isExitClickPlaying() const {
+    return menuClick.getStatus() == sf::SoundSource::Playing;
 }

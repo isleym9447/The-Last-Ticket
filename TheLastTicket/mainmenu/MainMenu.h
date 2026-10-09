@@ -14,6 +14,7 @@ public:
     void update(const sf::RenderWindow& window);
     void draw(sf::RenderWindow& window) const;
     Action takeCompletedAction();
+    bool isExitClickPlaying() const;
 
 private:
     enum class Phase { Idle, FadeButtons, Flicker, Lit, FadeBlack, Complete };
@@ -32,6 +33,11 @@ private:
     sf::Clock phaseClock;
     sf::Music lightFlicker;
     sf::Music lightBuzz;
+    sf::Music menuHover;
+    sf::Music menuClick;
+    sf::Music startResume;
+    sf::Clock startResumeClock;
+    int hoveredButton = -1;
     sf::Vector2u size;
 
     static void centerText(sf::Text& text, float x, float y);
